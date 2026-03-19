@@ -54,6 +54,8 @@ namespace LLMAgent
 
         private void Awake()
         {
+            Application.runInBackground = true;
+
             if (agentUI == null)
             {
                 agentUI = FindObjectOfType<MazeAgentUI>();

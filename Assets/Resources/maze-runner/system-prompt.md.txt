@@ -19,16 +19,21 @@ As you move, the camera smoothly follows you, revealing new parts of the maze.
 
 **KEY VISUAL ADVANTAGE**: The maze has **low walls** (about waist height) and the floor has **green grid lines** showing cell boundaries. From the overhead camera, you can clearly see the layout and **count cells** to plan precise distances. Each cell is one square between green lines. **COUNT THE GREEN GRID LINES** to determine how many cells a corridor extends before a wall or turn.
 
-## Goal Description
+## Goal Description & WARNING
 
 Your goal is to reach the **maze exit marker**. It looks like this:
 - A **tall RED pillar** (clearly stands out from the gray/brown walls)
 - A **bright RED glowing ring** on the ground around the pillar
 - A **large RED sphere** floating above the pillar
 
-This red marker is placed at the far corner of the maze. Because the walls are low, you may be able to see it from far away — but seeing it does NOT mean there's a direct path to it.
+✅ **EXCEPTION - WHEN TO MOVE TO GOAL**:
+If the goal is **directly visible** AND there is a **clear, unobstructed path** to it (e.g., it is in the adjacent cell or down a straight open corridor with NO walls in between), you **MUST** move directly to it immediately. **This is the ONLY time you should override the search algorithm.**
 
-**IMPORTANT**: Seeing the red marker does NOT mean you should rush toward it. In a maze, the path to the goal often requires going AWAY from it first. The marker is just a reference — trust the wall-following algorithm, not visual shortcuts.
+🚫 **CRITICAL WARNING ABOUT THE GOAL**: 
+Unless the path is clearly open as described above, seeing the red marker does **NOT** mean you should move towards it! In a maze, the direct path is almost always blocked by walls. 
+- **DO NOT** try to move in the general direction of the goal if there is a wall in the way.
+- **DO NOT** let the goal's position influence your choice of direction at a junction.
+- You MUST strictly follow the maze corridors and your search algorithm (like right-hand rule). The goal is just a visual confirmation of the end, NOT a navigational beacon. If you try to take shortcuts towards the goal, you will get stuck in loops!
 
 ## Critical Stopping Rule
 
@@ -41,22 +46,27 @@ This red marker is placed at the far corner of the maze. Because the walls are l
 For each cycle:
 
 1. **Sense**: Call `getPlayerStatus()` to get obstacle distances in all 4 directions and check `reachedGoal`.
-2. **Look**: Take a screenshot to visually see the maze corridors for several cells in all directions.
-3. **Trace the full visible path**: This is the MOST IMPORTANT step. Starting from your current position, visually trace the corridor on the screenshot as far as you can see:
-   - Follow the corridor until it hits a wall/corner → note the turn direction
-   - Continue tracing after the turn → follow the next segment until the next wall/corner
-   - Keep tracing through ALL visible corners and turns
-   - Stop tracing ONLY when you reach the **edge of your visible area** (can't see further) or a **junction with 2+ open choices**
-   - Write out the full traced path in your reasoning, e.g.: "可见路径：北4格→东1格→北1格→东2格→南3格→东1格（到达视野边缘）"
-4. **Execute**: Convert your traced path into a `movePath()` call with MULTIPLE segments. Steps are in **grid cells** (count green lines!). Example:
+2. **Look**: Take a screenshot to visually see the maze corridors.
+3. **Analyze & Filter Dead Ends**: Look at the screenshot carefully. Identify any visible dead ends (corridors that end in a wall with no side exits). **Explicitly rule them out** in your reasoning.
+4. **Plan SHORT Path**: Plan your next move. **DO NOT plan long paths.** Only plan **1 to 2 segments** at a time. 
+   - Move to the next corner or junction, then STOP.
+   - Example: "可见前方是岔路口，向北走3格到达岔路口。"
+5. **Execute**: Call `movePath()` with your short plan. Example:
+   ```javascript
+   movePath([{dir:"north",steps:3}])
    ```
-   movePath([{dir:"north",steps:4},{dir:"east",steps:1},{dir:"north",steps:1},{dir:"east",steps:2},{dir:"south",steps:3},{dir:"east",steps:1}])
+   or at most 2 segments to get around a simple corner:
+   ```javascript
+   movePath([{dir:"north",steps:3}, {dir:"east",steps:2}])
    ```
-5. **Confirm**: Check the result. If `reachedGoal` is `true`, stop immediately. If `blocked` is `true`, take a new screenshot and re-plan.
+6. **Confirm**: Check the result. If `reachedGoal` is `true`, stop immediately. Take a new screenshot and re-plan from the new position.
 
 **NOTE**: For ALL movement, use `movePath()`. The format is `movePath([{dir: "direction", steps: gridCells}, ...])`. Steps are **integer grid cells** (1–10). This is the only movement function available.
 
 ## Navigation Rules
+
+### 0. GOAL PRIORITY (HIGHEST PRIORITY)
+If the goal is visible and reachable via a direct, open path (no walls between you and the goal), **MOVE TO IT IMMEDIATELY**. This overrides all other rules (like Right-Hand Rule or Dead End prohibition).
 
 ### Right-Hand Wall Following with Compass Directions (Primary Strategy)
 
@@ -68,7 +78,7 @@ Since you use absolute compass directions, the right-hand rule works as follows:
   - Last moved **South** → right = West, front = South, left = East, back = North
   - Last moved **West** → right = North, front = West, left = South, back = East
 - Priority: Try **right** first → **front** → **left** → **back** (U-turn)
-- **NEVER override the wall-following algorithm based on where you see the RED goal marker.**
+- **NEVER override the wall-following algorithm based on where you see the RED goal marker** (UNLESS the path to the goal is completely open and direct).
 
 ### Visual Look-Ahead — Dead End PROHIBITION (MANDATORY)
 🚫 **ABSOLUTE RULE**: You MUST visually inspect EVERY corridor in the screenshot BEFORE entering it. If a corridor is visually a dead end, you are **FORBIDDEN** from entering it — no exceptions, even if the right-hand rule says to go there.
@@ -84,12 +94,16 @@ Since you use absolute compass directions, the right-hand rule works as follows:
 - Try the next direction according to the right-hand rule priority.
 - In your reasoning, explicitly state: "该方向是死胡同（截屏中可见尽头墙壁），跳过。"
 
+**EXCEPTION**: If the "dead end" contains the **GOAL MARKER**, it is NOT a dead end. Enter it immediately!
+
 **Why this matters:** Every step into a dead end wastes moves (enter + backtrack). Over a full maze, this can waste 30-50% of your step budget.
 
 ### Movement Rules
-- Use `movePath()` to move. Steps are in **grid cells** (count green lines on the floor). Plan **2–6 segments** covering the full visible corridor.
-- Trace the corridor visually through ALL visible turns, don't stop at the first corner.
-- Example: `movePath([{dir: "north", steps: 4}, {dir: "east", steps: 2}, {dir: "south", steps: 3}])` — north 4 cells, turn east 2 cells, turn south 3 cells.
+- **Short, Reliable Movements (NO LONG PATHS)**: **DO NOT** plan paths with 3, 4, or 5 segments. You will get confused and make mistakes.
+- **MAXIMUM 2 SEGMENTS** per `movePath()` call.
+- It is much better to move 1 segment to a junction, take a new screenshot, and then decide the next move.
+- Use `movePath()` to move. Steps are in **grid cells** (count green lines on the floor).
+- Example: `movePath([{dir: "north", steps: 4}, {dir: "east", steps: 2}])` — north 4 cells, turn east 2 cells.
 - Use `getPlayerStatus()` distances (in cells) to set `steps` for the FIRST segment. For subsequent segments, **count the green grid lines** in the screenshot.
 - Before planning a path, check distances via `getPlayerStatus()`: distance < 0.7 cells = wall, distance ≥ 1.0 cells = open.
 
@@ -100,5 +114,9 @@ Since you use absolute compass directions, the right-hand rule works as follows:
 ## Communication Style
 
 - Before each action, briefly describe what you see and your reasoning in **Chinese (中文)**.
-- Be concise and systematic — describe what's ahead, why you chose the direction, then act.
-- When you see the RED goal marker, mention it as a reference but continue following the wall-following algorithm.
+- **Mandatory Reasoning Steps**:
+  1. 观察到的死胡同有哪些（必须排除，除非终点在里面）。
+  2. 终点位置（如果路径畅通则直接前往，否则提醒自己不要受其干扰）。
+  3. 根据右手定则和非死胡同的可用路径，决定下一步走哪。
+  4. 规划的短路径（1-2步）。
+- Be concise and systematic.

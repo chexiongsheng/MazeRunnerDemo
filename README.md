@@ -2,6 +2,39 @@
 
 项目附带了一个 AI 自主走迷宫的 Demo，展示 Agent 通过截屏观察 + 工具调用来探索 3D 迷宫。
 
+### 0. 准备工作
+
+#### 克隆仓库
+
+本项目包含 Git submodule，克隆时请使用 `--recursive` 参数以同时拉取所有子模块：
+
+```bash
+git clone --recursive https://github.com/xxx/MazeRunnerDemo.git
+```
+
+如果已经克隆但忘记加 `--recursive`，可以补充初始化子模块：
+
+```bash
+git submodule update --init --recursive
+```
+
+#### 获取 PuerTS 插件二进制
+
+项目依赖的 [PuerTS](https://github.com/Tencent/puerts) submodule 中**不包含**编译好的二进制插件，需要手动从 PuerTS 的 GitHub Releases 页面下载并解压。
+
+以 `Unity_v3.0.1` 为例，下载地址：
+> https://github.com/Tencent/puerts/releases/tag/Unity_v3.0.1
+
+需要下载以下三个插件包，并将各自的 `Plugins` 目录内容放置到对应的 UPM 包路径下：
+
+| 插件包 | 说明 | 放置路径 |
+|--------|------|----------|
+| **PuerTS-Core** | PuerTS 核心插件 | `puerts/unity/upms/core/Plugins/` |
+| **PuerTS-V8** | V8 引擎后端插件 | `puerts/unity/upms/v8/Plugins/` |
+| **PuerTS-Nodejs** | Node.js 后端插件 | `puerts/unity/upms/nodejs/Plugins/` |
+
+> ⚠️ **注意**：不要放到 `Assets/Plugins/`，应放到各 UPM 包自身的 `Plugins` 目录下。
+
 ### 1. 生成迷宫场景
 
 菜单栏 **Tools → Maze Runner → Generate Maze Scene**，打开迷宫生成器窗口：

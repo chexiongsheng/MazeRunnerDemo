@@ -1,0 +1,14 @@
+{
+  "name": "maze-runner",
+  "version": "1.0.0",
+  "description": "Maze Runner demo - TypeScript builtins for AI maze exploration",
+  "private": true,
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.4.0"
+  }
+}

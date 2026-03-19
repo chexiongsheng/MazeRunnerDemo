@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": false,
+    "sourceMap": false,
+    "noEmit": true,
+    "typeRoots": ["../Assets/Gen/Typing", "../puerts/unity/upms/core/Typing"]
+  },
+  "include": ["src/**/*.mts", "src/**/*.d.ts", "../Assets/Gen/Typing/csharp/index.d.ts"],
+  "exclude": ["node_modules"]
+}

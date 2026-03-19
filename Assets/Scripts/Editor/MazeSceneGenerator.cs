@@ -54,6 +54,9 @@ namespace LLMAgent.Editor
 
         private void GenerateMazeScene()
         {
+            // Ensure "Goal" tag exists in Tag Manager
+            EnsureTagExists("Goal");
+
             // Create a new scene
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -397,6 +400,29 @@ namespace LLMAgent.Editor
                 visited[newX, newY] = true;
                 stack.Push((newX, newY));
             }
+        }
+
+        /// <summary>
+        /// Ensure a tag exists in the Unity Tag Manager. Adds it if not already defined.
+        /// </summary>
+        private void EnsureTagExists(string tag)
+        {
+            var tagManager = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+            var tagsProp = tagManager.FindProperty("tags");
+
+            // Check if tag already exists
+            for (int i = 0; i < tagsProp.arraySize; i++)
+            {
+                if (tagsProp.GetArrayElementAtIndex(i).stringValue == tag)
+                    return; // Tag already exists
+            }
+
+            // Add the new tag
+            tagsProp.InsertArrayElementAtIndex(tagsProp.arraySize);
+            tagsProp.GetArrayElementAtIndex(tagsProp.arraySize - 1).stringValue = tag;
+            tagManager.ApplyModifiedProperties();
+
+            Debug.Log($"[MazeSceneGenerator] Added tag '{tag}' to Tag Manager.");
         }
     }
 }

@@ -1,10 +1,9 @@
-## Demo: AI 迷宫探索
-
 项目附带了一个 AI 自主走迷宫的 Demo，展示 Agent 通过截屏观察 + 工具调用来探索 3D 迷宫。
+也接入了Puerts助手，包括Agent版和MCP版。
 
-### 0. 准备工作
+## 准备工作
 
-#### 克隆仓库
+### 克隆仓库
 
 本项目包含 Git submodule，克隆时请使用 `--recursive` 参数以同时拉取所有子模块：
 
@@ -18,7 +17,7 @@ git clone --recursive https://github.com/xxx/MazeRunnerDemo.git
 git submodule update --init --recursive
 ```
 
-#### 获取 PuerTS 插件二进制
+### 获取 PuerTS 插件二进制
 
 项目依赖的 [PuerTS](https://github.com/Tencent/puerts) submodule 中**不包含**编译好的二进制插件，需要手动从 PuerTS 的 GitHub Releases 页面下载并解压。
 
@@ -34,6 +33,28 @@ git submodule update --init --recursive
 | **PuerTS-Nodejs** | Node.js 后端插件 | `puerts/unity/upms/nodejs/Plugins/` |
 
 > ⚠️ **注意**：不要放到 `Assets/Plugins/`，应放到各 UPM 包自身的 `Plugins` 目录下。
+
+## Agent版本Puerts助手
+
+点击菜单"Puerts Agent/New Chat Window"
+
+## MCP版本Puerts助手
+
+点击菜单"Puerts/MCP Server"
+
+在IDE配置
+
+```json
+{
+  "mcpServers": {
+    "puerts-unity-editor-assistant": {
+      "url": "http://127.0.0.1:3100/sse"
+    }
+  }
+}
+```
+
+## Demo: AI 迷宫探索
 
 ### 1. 生成迷宫场景
 

@@ -8,7 +8,7 @@
 本项目包含 Git submodule，克隆时请使用 `--recursive` 参数以同时拉取所有子模块：
 
 ```bash
-git clone --recursive https://github.com/xxx/MazeRunnerDemo.git
+git clone --recursive https://github.com/chexiongsheng/MazeRunnerDemo
 ```
 
 如果已经克隆但忘记加 `--recursive`，可以补充初始化子模块：

@@ -165,6 +165,7 @@ namespace LLMAgent
                 {
                     // Called when the AI finishes its full response
                     agentUI?.HideThinking();
+                    bool hadStreaming = agentUI != null && agentUI.ResetStreaming();
                     isGenerating = false;
 
                     // Check if there's a pending message (user sent while generating)
@@ -198,8 +199,8 @@ namespace LLMAgent
                     {
                         Debug.Log($"[MazeDemoManager] Agent response: {response}");
 
-                        // Add AI response to chat
-                        if (!string.IsNullOrEmpty(response))
+                        // Add AI response to chat (skip if streaming already displayed it)
+                        if (!hadStreaming && !string.IsNullOrEmpty(response))
                         {
                             agentUI?.AddMessage(MazeAgentUI.MessageRole.Assistant, response);
                         }
@@ -238,7 +239,7 @@ namespace LLMAgent
                     // Progress callback — AI is streaming/thinking
                     if (!string.IsNullOrEmpty(progressText))
                     {
-                        Debug.Log($"[MazeDemoManager] Progress: {progressText.Substring(0, Math.Min(100, progressText.Length))}...");
+                        //Debug.Log($"[MazeDemoManager] Progress: {progressText.Substring(0, Math.Min(100, progressText.Length))}...");
                         agentUI?.UpdateProgress(progressText);
                     }
                 }

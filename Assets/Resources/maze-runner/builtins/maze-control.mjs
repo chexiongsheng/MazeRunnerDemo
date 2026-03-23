@@ -2,17 +2,21 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // src/builtins/maze-control.mts
-var summary = `**maze-control** \u2014 Control the player in the maze. \`movePath([{dir, steps}, ...])\` executes a **multi-segment path** in one call (e.g. north 3 \u2192 east 2 \u2192 south 4 = 3 segments). \`getPlayerStatus()\` returns position and obstacle distances in grid cells. **Always plan the longest visible path with multiple segments per call \u2014 do NOT call movePath with only 1 segment unless at a dead end.** Read \`.description\` for details.`;
+var summary = `**maze-control** \u2014 Control the player in the maze. \`getMazeMap()\` returns a full ASCII map of the maze with walls, player (P), and goal (G) \u2014 use it to plan the complete route. \`movePath([{dir, steps}, ...])\` executes a **multi-segment path** in one call. \`getPlayerStatus()\` returns position and obstacle distances. Read \`.description\` for details.`;
 var description = `
 - **\`movePath(segments)\`** \u2014 Move the player along a **multi-segment planned path** in a single call. Steps are in **grid cells** (each cell = 2m on the ground, shown by green grid lines).
   - \`segments\` (array, required): Array of objects \`{ dir: string, steps: number }\`.
     - \`dir\`: compass direction \u2014 "north", "south", "east", or "west"
     - \`steps\`: number of grid cells **to move** (relative displacement, NOT an absolute coordinate!) (1\u201310, integer). E.g. if you are at column 1 and want to reach column 3, steps = 3 \u2212 1 = **2**, not 3.
-  - **You SHOULD include 2\u20136 segments per call** \u2014 trace the full visible corridor through all its turns.
+  - You can plan the full route at once or break it into batches. Max 20 segments per call.
   - The player always lands exactly at a cell center (snaps to grid).
-  - Max 20 segments per call.
   - Returns: \`{ success, stepsRequested, stepsCompleted, blocked, reachedGoal, totalDistanceMoved, position, message }\`
   - Executes each segment sequentially. Stops early if blocked by a wall or if the goal is reached.
+  - **You MUST walk INTO the goal cell (G) \u2014 do not stop one cell away!** The \`reachedGoal\` flag only becomes \`true\` when the player is **inside** the goal cell.
+
+  **\u26A0\uFE0F FORBIDDEN CODE:** You may ONLY write code that calls \`getMazeMap()\`, \`movePath()\`, \`getPlayerStatus()\`, or \`takeScreenshot()\`. Do NOT write code to parse/index/analyze the ASCII map string, search for characters, or implement any pathfinding algorithm. Read the map with your eyes and brain, not with code.
+
+  **\u26A0\uFE0F STEP COUNT RULE:** Write a coordinate trace and count arrows = steps. E.g. (1,0)\u2192N\u2192(1,1)\u2192N\u2192(1,2) = 2 arrows = steps:2. Do NOT confuse target coordinate with step count!
 
   **Multi-segment examples (THIS IS HOW YOU SHOULD USE IT):**
   \`\`\`
@@ -48,7 +52,34 @@ var description = `
 
 **Grid system**: The maze floor has green grid lines showing cell boundaries. Each cell is a square. The player always starts at a cell center and moves to another cell center. **Count the number of grid lines you need to CROSS** (not the target grid line number) to determine \`steps\`.
 
-**Workflow**: Call \`getPlayerStatus()\` ONCE to sense immediate surroundings, take ONE screenshot to visually trace the corridor as far as you can see through ALL visible turns, then plan the ENTIRE visible path as a multi-segment \`movePath()\` call. Do NOT stop at the first corner \u2014 keep tracing.
+- **\`getMazeMap()\`** \u2014 Get a complete ASCII representation of the entire maze.
+  - Returns: \`{ success, width, height, playerCell, goalCell, map, message }\`
+  - The \`map\` field is an ASCII art string showing the full maze layout:
+    - \`P\` = Player position, \`G\` = Goal position
+    - \`+\` = corner, \`---\` = horizontal wall, \`|\` = vertical wall
+    - Spaces between walls = open passages
+    - Rows are labeled y0, y1, ... from bottom (south) to top (north)
+    - Columns are labeled x0, x1, ... from left (west) to right (east)
+  - **Use this to plan the route from P to G!**
+  - Example output (4\xD74 maze):
+    \`\`\`
+         x0  x1  x2  x3
+        +---+---+---+---+
+     y3 | P |           |
+        +   +---+   +   +
+     y2 |       |   |   |
+        +---+   +   +   +
+     y1 |   |       |   |
+        +   +   +---+   +
+     y0 |           | G |
+        +---+---+---+---+
+    \`\`\`
+
+**Workflow**:
+1. Call \`getMazeMap()\` to get the full maze layout.
+2. Plan the route from P to G by reading the ASCII map. Write a brief coordinate trace to verify step counts.
+3. Execute with \`movePath()\`. If blocked or not at G yet, re-plan from current position.
+4. Use \`getPlayerStatus()\` only if you need to verify your current position.
 `.trim();
 async function movePath(segments) {
   if (!Array.isArray(segments) || segments.length === 0) {
@@ -107,8 +138,21 @@ async function getPlayerStatus() {
   return JSON.parse(resultJson);
 }
 __name(getPlayerStatus, "getPlayerStatus");
+async function getMazeMap() {
+  const resultJson = await new Promise((resolve, reject) => {
+    try {
+      CS.LLMAgent.MazePlayerBridge.GetMazeMap((json) => resolve(json));
+    } catch (error) {
+      reject(error);
+    }
+  });
+  console.log(`getMazeMap: ${resultJson}`);
+  return JSON.parse(resultJson);
+}
+__name(getMazeMap, "getMazeMap");
 export {
   description,
+  getMazeMap,
   getPlayerStatus,
   movePath,
   summary

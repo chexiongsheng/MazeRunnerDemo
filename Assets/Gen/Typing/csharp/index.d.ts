@@ -48,6 +48,16 @@
         interface IEquatable$1<T>
         {
         }
+        class Single extends System.ValueType implements System.IFormattable, System.ISpanFormattable, System.IComparable, System.IComparable$1<number>, System.IConvertible, System.IEquatable$1<number>
+        {
+            protected [__keep_incompatibility]: never;
+        }
+        interface IFormattable
+        {
+        }
+        interface ISpanFormattable
+        {
+        }
         class Delegate extends System.Object implements System.Runtime.Serialization.ISerializable, System.ICloneable
         {
             protected [__keep_incompatibility]: never;
@@ -67,21 +77,14 @@
         {
             protected [__keep_incompatibility]: never;
         }
-        interface IFormattable
-        {
-        }
-        interface ISpanFormattable
-        {
-        }
-        class Single extends System.ValueType implements System.IFormattable, System.ISpanFormattable, System.IComparable, System.IComparable$1<number>, System.IConvertible, System.IEquatable$1<number>
-        {
-            protected [__keep_incompatibility]: never;
-        }
         class Boolean extends System.ValueType implements System.IComparable, System.IComparable$1<boolean>, System.IConvertible, System.IEquatable$1<boolean>
         {
             protected [__keep_incompatibility]: never;
         }
         interface IDisposable
+        {
+        }
+        interface IFormatProvider
         {
         }
         class Array extends System.Object implements System.Collections.IStructuralComparable, System.Collections.IStructuralEquatable, System.ICloneable, System.Collections.ICollection, System.Collections.IEnumerable, System.Collections.IList
@@ -151,9 +154,6 @@
             public static Copy ($sourceArray: System.Array, $sourceIndex: number, $destinationArray: System.Array, $destinationIndex: number, $length: number) : void
             public static ConstrainedCopy ($sourceArray: System.Array, $sourceIndex: number, $destinationArray: System.Array, $destinationIndex: number, $length: number) : void
             public Initialize () : void
-        }
-        interface IFormatProvider
-        {
         }
         class Type extends System.Reflection.MemberInfo implements System.Runtime.InteropServices._MemberInfo, System.Runtime.InteropServices._Type, System.Reflection.ICustomAttributeProvider, System.Reflection.IReflect
         {
@@ -426,9 +426,20 @@
         }
     }
     namespace LLMAgent {
+        class MazePlayerBridge extends System.Object
+        {
+            protected [__keep_incompatibility]: never;
+            public static MoveSequence ($directionsJson: string, $distance: number, $callback: System.Action$1<string>) : void
+            public static MoveSequenceV2 ($directionsJson: string, $distancesJson: string, $callback: System.Action$1<string>) : void
+            public static MoveDirection ($direction: string, $distance: number, $callback: System.Action$1<string>) : void
+            public static MoveForward ($distance: number, $callback: System.Action$1<string>) : void
+            public static GetPlayerStatus ($callback: System.Action$1<string>) : void
+            public static GetMazeMap ($callback: System.Action$1<string>) : void
+        }
         class HttpBridge extends System.Object
         {
             protected [__keep_incompatibility]: never;
+            public static SendStreamRequestAsync ($url: string, $method: string, $headersJson: string, $body: string, $onHeader: System.Action$1<string>, $onChunk: System.Action$1<string>, $onComplete: System.Action$1<string>) : void
             public static SendRequestAsync ($url: string, $method: string, $headersJson: string, $body: string, $callback: System.Action$1<string>) : void
         }
         class UnityLogBridge extends System.Object
@@ -468,16 +479,7 @@
             public static CreateJavaScriptEnv () : Puerts.ScriptEnv
             public static Eval ($env: Puerts.ScriptEnv, $script: string, $onFinish: System.Action$1<string>) : void
             public static EvalSync ($env: Puerts.ScriptEnv, $script: string) : void
-            public static LoadBuiltinModules ($env: Puerts.ScriptEnv) : System.Array$1<string>
             public constructor ()
-        }
-        class MazePlayerBridge extends System.Object
-        {
-            protected [__keep_incompatibility]: never;
-            public static MoveDirection ($direction: string, $distance: number, $callback: System.Action$1<string>) : void
-            public static MoveSequence ($directionsJson: string, $distance: number, $callback: System.Action$1<string>) : void
-            public static MoveSequenceV2 ($directionsJson: string, $distancesJson: string, $callback: System.Action$1<string>) : void
-            public static GetPlayerStatus ($callback: System.Action$1<string>) : void
         }
     }
     namespace System.Collections.Generic {

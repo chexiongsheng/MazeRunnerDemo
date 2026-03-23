@@ -270,6 +270,18 @@ namespace LLMAgent
             public string error;
         }
 
+        [Serializable]
+        private class MazeMapResult
+        {
+            public bool success;
+            public int width;
+            public int height;
+            public string playerCell;
+            public string goalCell;
+            public string map;
+            public string message;
+        }
+
         // --- Direction helpers ---
 
         private static readonly Vector3 DirNorth = Vector3.forward;   // +Z
@@ -586,6 +598,169 @@ namespace LLMAgent
                     : $"Position: {FormatVector3(pos)}. Cell: ({Mathf.FloorToInt(pos.x / CellSize)},{Mathf.FloorToInt(pos.z / CellSize)}). " +
                       $"North: {northDist:F1} cells, South: {southDist:F1} cells, East: {eastDist:F1} cells, West: {westDist:F1} cells."
             }));
+        }
+
+        /// <summary>
+        /// Get an ASCII representation of the entire maze layout.
+        /// Uses raycasting from each cell center to detect walls in all 4 directions.
+        /// The map shows player position (P), goal (G), and all walls.
+        /// </summary>
+        /// <param name="callback">Callback invoked with JSON result containing the ASCII map</param>
+        public static void GetMazeMap(Action<string> callback)
+        {
+            if (callback == null) return;
+
+            try
+            {
+                // Determine maze dimensions from the Floor object's scale
+                var floor = GameObject.Find("Floor");
+                if (floor == null)
+                {
+                    callback.Invoke(BuildErrorJson("Cannot find Floor object to determine maze dimensions."));
+                    return;
+                }
+
+                // Floor is a Plane scaled by (totalWidth/10, 1, totalHeight/10)
+                float totalWidth = floor.transform.localScale.x * 10f;
+                float totalHeight = floor.transform.localScale.z * 10f;
+                int mazeW = Mathf.RoundToInt(totalWidth / CellSize);
+                int mazeH = Mathf.RoundToInt(totalHeight / CellSize);
+
+                if (mazeW <= 0 || mazeH <= 0 || mazeW > 50 || mazeH > 50)
+                {
+                    callback.Invoke(BuildErrorJson($"Invalid maze dimensions detected: {mazeW}x{mazeH}."));
+                    return;
+                }
+
+                // Detect walls for each cell using raycasts
+                // walls[x, y, dir]: true = wall exists. dir: 0=N(+Z), 1=E(+X), 2=S(-Z), 3=W(-X)
+                bool[,,] walls = new bool[mazeW, mazeH, 4];
+                float rayHeight = 0.5f;
+                float wallDetectDist = CellSize * 0.6f; // Slightly more than half a cell
+
+                for (int x = 0; x < mazeW; x++)
+                {
+                    for (int y = 0; y < mazeH; y++)
+                    {
+                        Vector3 cellCenter = new Vector3(
+                            x * CellSize + CellSize / 2f,
+                            rayHeight,
+                            y * CellSize + CellSize / 2f
+                        );
+
+                        // North (+Z)
+                        walls[x, y, 0] = Physics.Raycast(cellCenter, Vector3.forward, wallDetectDist);
+                        // East (+X)
+                        walls[x, y, 1] = Physics.Raycast(cellCenter, Vector3.right, wallDetectDist);
+                        // South (-Z)
+                        walls[x, y, 2] = Physics.Raycast(cellCenter, Vector3.back, wallDetectDist);
+                        // West (-X)
+                        walls[x, y, 3] = Physics.Raycast(cellCenter, Vector3.left, wallDetectDist);
+                    }
+                }
+
+                // Find player cell
+                int playerCellX = -1, playerCellY = -1;
+                var (playerTransform, _, findError) = FindPlayer();
+                if (playerTransform != null)
+                {
+                    playerCellX = Mathf.FloorToInt(playerTransform.position.x / CellSize);
+                    playerCellY = Mathf.FloorToInt(playerTransform.position.z / CellSize);
+                    playerCellX = Mathf.Clamp(playerCellX, 0, mazeW - 1);
+                    playerCellY = Mathf.Clamp(playerCellY, 0, mazeH - 1);
+                }
+
+                // Find goal cell
+                int goalCellX = -1, goalCellY = -1;
+                GameObject goal = GameObject.FindWithTag(GoalTag);
+                if (goal != null)
+                {
+                    goalCellX = Mathf.FloorToInt(goal.transform.position.x / CellSize);
+                    goalCellY = Mathf.FloorToInt(goal.transform.position.z / CellSize);
+                    goalCellX = Mathf.Clamp(goalCellX, 0, mazeW - 1);
+                    goalCellY = Mathf.Clamp(goalCellY, 0, mazeH - 1);
+                }
+
+                // Build ASCII map
+                // We render from top (highest Y/Z) to bottom (lowest Y/Z) so North is up
+                // Each cell is 4 chars wide, 2 chars tall:
+                //   +---+   top border (north wall)
+                //   | X |   cell content with east/west walls
+                // Plus one final bottom border row.
+
+                var sb = new System.Text.StringBuilder();
+
+                // Column header: cell X coordinates
+                sb.Append("    "); // indent for row labels
+                for (int x = 0; x < mazeW; x++)
+                {
+                    sb.Append($" x{x} ");
+                }
+                sb.AppendLine();
+
+                for (int y = mazeH - 1; y >= 0; y--)
+                {
+                    // Top border row for this row of cells
+                    sb.Append("    "); // indent for row labels
+                    for (int x = 0; x < mazeW; x++)
+                    {
+                        sb.Append('+');
+                        sb.Append(walls[x, y, 0] ? "---" : "   ");
+                    }
+                    sb.Append('+');
+                    sb.AppendLine();
+
+                    // Cell content row
+                    sb.Append($" y{y} "); // row label
+                    for (int x = 0; x < mazeW; x++)
+                    {
+                        sb.Append(walls[x, y, 3] ? '|' : ' ');
+
+                        // Cell content
+                        if (x == playerCellX && y == playerCellY)
+                            sb.Append(" P ");
+                        else if (x == goalCellX && y == goalCellY)
+                            sb.Append(" G ");
+                        else
+                            sb.Append("   ");
+                    }
+                    // Rightmost east wall of the last cell
+                    sb.Append(walls[mazeW - 1, y, 1] ? '|' : ' ');
+                    sb.AppendLine();
+                }
+
+                // Bottom border row (south walls of y=0)
+                sb.Append("    "); // indent for row labels
+                for (int x = 0; x < mazeW; x++)
+                {
+                    sb.Append('+');
+                    sb.Append(walls[x, 0, 2] ? "---" : "   ");
+                }
+                sb.Append('+');
+                sb.AppendLine();
+
+                // Direction legend
+                sb.AppendLine();
+                sb.AppendLine("Legend: P=Player  G=Goal  North=up(+Z)  South=down(-Z)  East=right(+X)  West=left(-X)");
+                sb.AppendLine($"Maze size: {mazeW}x{mazeH}  Player cell: ({playerCellX},{playerCellY})  Goal cell: ({goalCellX},{goalCellY})");
+
+                string mapStr = sb.ToString();
+
+                callback.Invoke(JsonUtility.ToJson(new MazeMapResult
+                {
+                    success = true,
+                    width = mazeW,
+                    height = mazeH,
+                    playerCell = $"({playerCellX},{playerCellY})",
+                    goalCell = $"({goalCellX},{goalCellY})",
+                    map = mapStr,
+                    message = $"Maze map {mazeW}x{mazeH}. Player at ({playerCellX},{playerCellY}), Goal at ({goalCellX},{goalCellY})."
+                }));
+            }
+            catch (Exception e)
+            {
+                callback.Invoke(BuildErrorJson($"Failed to generate maze map: {e.Message}"));
+            }
         }
 
         // --- Internal helpers ---

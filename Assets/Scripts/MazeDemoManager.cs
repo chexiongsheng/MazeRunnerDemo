@@ -29,7 +29,7 @@ namespace LLMAgent
         [Header("Maze Settings")]
         [Tooltip("The message sent to the AI to start maze exploration.")]
         [TextArea(3, 5)]
-        public string startMessage = "红色标记是迷宫终点，走到终点。";
+        public string startMessage = "The red marker indicates the end of the maze; proceed to the finish.";
 
         [Header("References")]
         [Tooltip("Optional: MazeAgentUI component. If null, will try to find one in scene.")]

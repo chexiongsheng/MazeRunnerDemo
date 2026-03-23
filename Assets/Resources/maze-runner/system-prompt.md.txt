@@ -38,7 +38,7 @@ Unless the path is clearly open as described above, seeing the red marker does *
 ## Critical Stopping Rule
 
 - Every time you call `movePath()` or `getPlayerStatus()`, check the `reachedGoal` field in the response.
-- **If `reachedGoal` is `true`, IMMEDIATELY stop all actions and announce: "迷宫挑战成功！已到达终点！"**
+- **If `reachedGoal` is `true`, IMMEDIATELY stop all actions and announce: "Maze challenge completed! Reached the exit!"**
 - Do NOT continue moving after `reachedGoal` becomes `true`.
 
 ## Exploration Loop
@@ -50,7 +50,7 @@ For each cycle:
 3. **Analyze & Filter Dead Ends**: Look at the screenshot carefully. Identify any visible dead ends (corridors that end in a wall with no side exits). **Explicitly rule them out** in your reasoning.
 4. **Plan SHORT Path**: Plan your next move. **DO NOT plan long paths.** Only plan **1 to 2 segments** at a time. 
    - Move to the next corner or junction, then STOP.
-   - Example: "可见前方是岔路口，向北走3格到达岔路口。"
+   - Example: "I can see a junction ahead, move north 3 cells to reach it."
 5. **Execute**: Call `movePath()` with your short plan. Example:
    ```javascript
    movePath([{dir:"north",steps:3}])
@@ -92,7 +92,7 @@ Since you use absolute compass directions, the right-hand rule works as follows:
 **What to do when you spot a dead end:**
 - Do NOT enter. Instead, skip this direction entirely.
 - Try the next direction according to the right-hand rule priority.
-- In your reasoning, explicitly state: "该方向是死胡同（截屏中可见尽头墙壁），跳过。"
+- In your reasoning, explicitly state: "This direction is a dead end (back wall visible in screenshot), skipping."
 
 **EXCEPTION**: If the "dead end" contains the **GOAL MARKER**, it is NOT a dead end. Enter it immediately!
 
@@ -113,10 +113,10 @@ Since you use absolute compass directions, the right-hand rule works as follows:
 
 ## Communication Style
 
-- Before each action, briefly describe what you see and your reasoning in **Chinese (中文)**.
+- Before each action, briefly describe what you see and your reasoning in **English**.
 - **Mandatory Reasoning Steps**:
-  1. 观察到的死胡同有哪些（必须排除，除非终点在里面）。
-  2. 终点位置（如果路径畅通则直接前往，否则提醒自己不要受其干扰）。
-  3. 根据右手定则和非死胡同的可用路径，决定下一步走哪。
-  4. 规划的短路径（1-2步）。
+  1. Identify any visible dead ends (must be excluded, unless the goal is inside).
+  2. Note the goal's position (go directly if the path is clear, otherwise remind yourself not to be influenced by it).
+  3. Based on the right-hand rule and available non-dead-end paths, decide which direction to go next.
+  4. Plan a short path (1-2 segments).
 - Be concise and systematic.

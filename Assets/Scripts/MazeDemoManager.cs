@@ -6,7 +6,8 @@ namespace LLMAgent
     /// <summary>
     /// Main controller for the AI Maze Runner demo scene.
     /// Manages Agent lifecycle, user interaction, and UI state.
-    /// Attach this to an empty GameObject in the MazeDemo scene.
+    /// Supports a chat-based interaction model where the user can send messages
+    /// to the AI, the AI can explore the maze, and the user can interrupt at any time.
     /// </summary>
     public class MazeDemoManager : MonoBehaviour
     {
@@ -27,7 +28,7 @@ namespace LLMAgent
         public int maxSteps = 0;
 
         [Header("Maze Settings")]
-        [Tooltip("The message sent to the AI to start maze exploration.")]
+        [Tooltip("The default first message sent to the AI to start maze exploration.")]
         [TextArea(3, 5)]
         public string startMessage = "The red marker indicates the end of the maze; proceed to the finish.";
 
@@ -37,7 +38,7 @@ namespace LLMAgent
 
         // Internal state
         private AgentScriptManager agent;
-        private bool isExploring;
+        private bool isGenerating;
         private bool isInitialized;
 
         private enum DemoState
@@ -45,7 +46,7 @@ namespace LLMAgent
             Uninitialized,
             Initializing,
             Ready,
-            Exploring,
+            Generating,
             Completed,
             Error
         }
@@ -64,6 +65,14 @@ namespace LLMAgent
 
         private void Start()
         {
+            // Wire up the chat panel's send callback
+            if (agentUI != null)
+            {
+                agentUI.onSendMessage = OnUserSendMessage;
+                // Pre-fill the input with startMessage
+                agentUI.SetInputText(startMessage);
+            }
+
             InitializeAgent();
         }
 
@@ -102,56 +111,100 @@ namespace LLMAgent
         }
 
         /// <summary>
-        /// Start the maze exploration. Called by UI button or programmatically.
+        /// Called when the user sends a message from the chat panel.
         /// </summary>
-        public void StartExploration()
+        private void OnUserSendMessage(string message)
         {
-            if (!isInitialized)
+            if (string.IsNullOrWhiteSpace(message)) return;
+
+            // If currently generating, abort first then send the new message
+            if (isGenerating)
             {
-                Debug.LogWarning("[MazeDemoManager] Agent not yet initialized.");
+                Debug.Log("[MazeDemoManager] Aborting current generation to send new message...");
+                agent.AbortGeneration();
+                // AbortGeneration triggers the callback with abort message.
+                // We'll queue the new message to be sent after abort completes.
+                pendingMessage = message;
                 return;
             }
 
-            if (isExploring)
+            SendChatMessage(message);
+        }
+
+        private string pendingMessage = null;
+
+        /// <summary>
+        /// Send a chat message to the AI agent.
+        /// </summary>
+        private void SendChatMessage(string message)
+        {
+            if (!isInitialized)
             {
-                Debug.LogWarning("[MazeDemoManager] Already exploring.");
+                agentUI?.AddMessage(MazeAgentUI.MessageRole.System, "Agent not yet initialized. Please wait...");
                 return;
             }
 
             if (!agent.IsAgentConfigured())
             {
-                Debug.LogError("[MazeDemoManager] Agent not configured. Please set API key.");
+                agentUI?.AddMessage(MazeAgentUI.MessageRole.System, "Error: API not configured. Please set API key.");
                 SetState(DemoState.Error);
-                agentUI?.SetStatus("Error: API not configured");
                 return;
             }
 
-            isExploring = true;
-            SetState(DemoState.Exploring);
-            Debug.Log("[MazeDemoManager] Starting maze exploration...");
+            // Add user message to chat
+            agentUI?.AddMessage(MazeAgentUI.MessageRole.User, message);
 
+            isGenerating = true;
+            SetState(DemoState.Generating);
             agentUI?.ShowThinking();
 
             agent.SendMessageAsync(
-                startMessage,
+                message,
                 "", // no image attachment
                 (response, isError) =>
                 {
                     // Called when the AI finishes its full response
                     agentUI?.HideThinking();
-                    isExploring = false;
+                    isGenerating = false;
+
+                    // Check if there's a pending message (user sent while generating)
+                    string pending = pendingMessage;
+                    pendingMessage = null;
 
                     if (isError)
                     {
                         Debug.LogError($"[MazeDemoManager] Agent error: {response}");
                         SetState(DemoState.Error);
-                        agentUI?.SetStatus($"Error: {response}");
+
+                        // Show error in chat but allow user to continue
+                        string errorDisplay = response;
+                        if (response.Contains("Generation stopped by user"))
+                        {
+                            errorDisplay = "⏹ Generation stopped.";
+                        }
+                        agentUI?.AddMessage(MazeAgentUI.MessageRole.System, errorDisplay);
+
+                        // If there's a pending message, send it now
+                        if (!string.IsNullOrEmpty(pending))
+                        {
+                            SendChatMessage(pending);
+                            return;
+                        }
+
+                        // Go back to ready so user can continue
+                        SetState(DemoState.Ready);
                     }
                     else
                     {
                         Debug.Log($"[MazeDemoManager] Agent response: {response}");
 
-                        // Check if the maze was actually completed by querying the goal detector
+                        // Add AI response to chat
+                        if (!string.IsNullOrEmpty(response))
+                        {
+                            agentUI?.AddMessage(MazeAgentUI.MessageRole.Assistant, response);
+                        }
+
+                        // Check if the maze was actually completed
                         bool mazeActuallyCompleted = false;
                         var playerObj = GameObject.FindWithTag("Player");
                         if (playerObj != null)
@@ -171,17 +224,22 @@ namespace LLMAgent
                         else
                         {
                             SetState(DemoState.Ready);
-                            agentUI?.SetStatus("Exploration paused (step limit reached)");
+                        }
+
+                        // If there's a pending message, send it now
+                        if (!string.IsNullOrEmpty(pending))
+                        {
+                            SendChatMessage(pending);
                         }
                     }
                 },
                 (progressText) =>
                 {
                     // Progress callback — AI is streaming/thinking
-                    // Keep showing thinking bubble during progress
                     if (!string.IsNullOrEmpty(progressText))
                     {
                         Debug.Log($"[MazeDemoManager] Progress: {progressText.Substring(0, Math.Min(100, progressText.Length))}...");
+                        agentUI?.UpdateProgress(progressText);
                     }
                 }
             );
@@ -192,13 +250,11 @@ namespace LLMAgent
         /// </summary>
         public void StopExploration()
         {
-            if (agent != null && isExploring)
+            if (agent != null && isGenerating)
             {
                 agent.AbortGeneration();
-                isExploring = false;
-                agentUI?.HideThinking();
-                SetState(DemoState.Ready);
-                Debug.Log("[MazeDemoManager] Exploration stopped by user.");
+                // The abort will be handled in the callback
+                Debug.Log("[MazeDemoManager] Exploration stop requested by user.");
             }
         }
 
@@ -209,11 +265,18 @@ namespace LLMAgent
         {
             if (agent != null)
             {
+                if (isGenerating)
+                {
+                    agent.AbortGeneration();
+                    isGenerating = false;
+                }
                 agent.ClearHistory();
             }
 
-            isExploring = false;
+            pendingMessage = null;
+            agentUI?.HideThinking();
             agentUI?.ResetUI();
+            agentUI?.SetInputText(startMessage);
 
             // Reset goal detector on player
             var playerObj = GameObject.FindWithTag("Player");
@@ -239,10 +302,10 @@ namespace LLMAgent
                     agentUI?.SetStatus("Initializing...");
                     break;
                 case DemoState.Ready:
-                    agentUI?.SetStatus("Ready — Press Start");
+                    agentUI?.SetStatus("Ready");
                     break;
-                case DemoState.Exploring:
-                    agentUI?.SetStatus("Exploring...");
+                case DemoState.Generating:
+                    agentUI?.SetStatus("Thinking...");
                     break;
                 case DemoState.Completed:
                     agentUI?.SetStatus("Maze Completed!");
@@ -253,24 +316,25 @@ namespace LLMAgent
             }
         }
 
-        // --- OnGUI: Simple buttons for demo control ---
+        // --- OnGUI: Simple buttons for demo control (in the maze area, not the chat panel) ---
 
         private void OnGUI()
         {
-            float btnWidth = 140f;
-            float btnHeight = 36f;
+            // Place buttons in the top-left area (within the maze view, not the chat panel)
+            float btnWidth = 100f;
+            float btnHeight = 30f;
             float padding = 10f;
-            float startX = Screen.width - btnWidth - padding;
-            float startY = padding;
+            float startX = padding;
+            float startY = 50f; // Below status panel
 
-            GUI.skin.button.fontSize = 14;
+            GUI.skin.button.fontSize = 12;
 
             switch (currentState)
             {
-                case DemoState.Ready:
-                    if (GUI.Button(new Rect(startX, startY, btnWidth, btnHeight), "▶ Start Exploration"))
+                case DemoState.Generating:
+                    if (GUI.Button(new Rect(startX, startY, btnWidth, btnHeight), "⏹ Stop"))
                     {
-                        StartExploration();
+                        StopExploration();
                     }
                     startY += btnHeight + 5;
                     if (GUI.Button(new Rect(startX, startY, btnWidth, btnHeight), "🔄 Reset"))
@@ -279,22 +343,16 @@ namespace LLMAgent
                     }
                     break;
 
-                case DemoState.Exploring:
-                    if (GUI.Button(new Rect(startX, startY, btnWidth, btnHeight), "⏹ Stop"))
-                    {
-                        StopExploration();
-                    }
-                    break;
-
-                case DemoState.Completed:
-                    if (GUI.Button(new Rect(startX, startY, btnWidth, btnHeight), "🔄 Play Again"))
+                case DemoState.Ready:
+                case DemoState.Error:
+                    if (GUI.Button(new Rect(startX, startY, btnWidth, btnHeight), "🔄 Reset"))
                     {
                         ResetMaze();
                     }
                     break;
 
-                case DemoState.Error:
-                    if (GUI.Button(new Rect(startX, startY, btnWidth, btnHeight), "🔄 Retry"))
+                case DemoState.Completed:
+                    if (GUI.Button(new Rect(startX, startY, btnWidth, btnHeight), "🔄 Play Again"))
                     {
                         ResetMaze();
                     }

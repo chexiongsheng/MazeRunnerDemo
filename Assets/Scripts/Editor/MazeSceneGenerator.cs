@@ -268,7 +268,7 @@ namespace LLMAgent.Editor
             goalTrigger.size = new Vector3(cellSize * 0.8f, 3f, cellSize * 0.8f);
             goalTrigger.center = new Vector3(0, 1.5f, 0);
 
-            // --- Camera (top-down overhead view) ---
+            // --- Camera (fixed top-down overhead view showing entire maze) ---
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
@@ -276,11 +276,13 @@ namespace LLMAgent.Editor
             cam.fieldOfView = 60;
             camGo.AddComponent<AudioListener>();
 
-            // Add follow script with top-down offset (straight above the player)
+            // Add fixed camera script — positions itself to show the full maze
+            // in the left portion of the screen (right side is reserved for chat panel)
             var followCam = camGo.AddComponent<MazeFollowCamera>();
-            followCam.target = player.transform;
-            followCam.offset = new Vector3(0f, 20f, 0f); // Directly above for clear top-down maze view
-            followCam.smoothSpeed = 8f;
+            followCam.target = player.transform; // Kept as fallback reference
+            followCam.offset = new Vector3(0f, 20f, 0f);
+            followCam.mazeViewWidthFraction = 0.7f;
+            followCam.padding = 2f;
 
             // --- Lighting (straight down, no shadows for clean top-down view) ---
             var lightGo = new GameObject("Directional Light");

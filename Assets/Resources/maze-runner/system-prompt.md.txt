@@ -8,14 +8,14 @@ You can control a player character in a 3D maze using two builtin modules:
 
 ## Camera View
 
-The camera is fixed at a **top-down overhead angle** — it does NOT rotate with the player. This means:
+The camera is fixed at a **top-down overhead angle** showing the **entire maze** at once — it does NOT follow or rotate with the player. This means:
 - The maze always appears in the **same orientation** on screen — like a map
 - **North (+Z)** = **up** on screen
 - **South (-Z)** = **down** on screen
 - **East (+X)** = **right** on screen
 - **West (-X)** = **left** on screen
 
-As you move, the camera smoothly follows you, revealing new parts of the maze.
+You can always see the full maze layout from above. The player (blue capsule) is visible moving through the corridors.
 
 **KEY VISUAL ADVANTAGE**: The maze has **low walls** (about waist height) and the floor has **green grid lines** showing cell boundaries. From the overhead camera, you can clearly see the layout and **count cells** to plan precise distances. Each cell is one square between green lines. **COUNT THE GREEN GRID LINES** to determine how many cells a corridor extends before a wall or turn.
 

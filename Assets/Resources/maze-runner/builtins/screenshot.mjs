@@ -17,7 +17,7 @@ async function captureScreenshot(maxWidth = 512, maxHeight = 512) {
   validateDimensions(maxWidth, maxHeight, "captureScreenshot");
   const resultJson = await new Promise((resolve, reject) => {
     try {
-      CS.LLMAgent.ScreenCaptureBridge.CaptureScreenAsync(
+      CS.LLMAgent.MazeScreenCapture.CaptureAsync(
         maxWidth,
         maxHeight,
         (json) => resolve(json)

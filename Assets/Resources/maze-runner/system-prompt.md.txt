@@ -29,13 +29,38 @@ The map uses these symbols:
 - Rows labeled y0 (south/bottom) to yN (north/top)
 - Columns labeled x0 (west/left) to xN (east/right)
 
-### How to Read the Map
+### How to Read the Map — Column-Based Method
 
-To determine if you can move from one cell to an adjacent cell:
-- **North** (y→y+1): Check if there is `---` on the top border of the current cell. If spaces (`   `), the path is open.
-- **South** (y→y-1): Check if there is `---` on the bottom border of the current cell.
-- **East** (x→x+1): Check if there is `|` on the right side of the current cell. If space (` `), the path is open.
-- **West** (x→x-1): Check if there is `|` on the left side of the current cell.
+The map has a **fixed column layout**. After the `" y# "` label (4 chars), the content is 33 characters with this structure:
+
+```
+col:  0    4    8   12   16   20   24   28   32   36
+      |  x0  sep  x1  sep  x2  sep  x3  sep  x4  ...  |
+      |  [3] [1]  [3] [1]  [3] [1]  [3] [1]  [3]      |
+```
+
+- **col 4**: left border `|`
+- **col 5–7**: x0 cell content (3 chars)
+- **col 8**: separator between x0 and x1 — `|` = WALL, ` ` = OPEN
+- **col 9–11**: x1 cell content
+- **col 12**: separator between x1 and x2
+- ... and so on for each cell pair ...
+- **col 36**: right border `|`
+
+**Vertical walls (east/west)**: Look at the **separator column** (col 8, 12, 16, 20, 24, 28, 32). If it's `|`, there's a wall; if it's ` ` (space), the passage is open.
+
+**Horizontal walls (north/south)**: In the `+---+` rows between cell rows, each cell position has 3 chars: `---` = wall, `   ` = open.
+
+> ⚠️ **COMMON MISTAKE**: Do NOT try to count characters or split by `|` to find walls — this leads to errors because open passages merge multiple cells into one visual span (e.g., `|       |` looks like 7 spaces spanning x0+sep+x1). Instead, **always use the fixed column positions** above.
+
+**Quick reference for an 8×8 maze** (separator columns after label):
+- x0–x1: col 8
+- x1–x2: col 12
+- x2–x3: col 16
+- x3–x4: col 20
+- x4–x5: col 24
+- x5–x6: col 28
+- x6–x7: col 32
 
 ## Direction Mapping
 
@@ -91,7 +116,7 @@ Call `movePath()` with your verified segments.
 ### Step 5 — Check Result and Repeat
 
 - If `reachedGoal` is `true` → **STOP**, announce success!
-- If `blocked` is `true` → Call `getMazeMap()` to see your updated position, then re-plan from Step 2.
+- If `blocked` is `true` → **Trust the game!** The game is always right about walls. Call `getPlayerStatus()` to see open directions from your current position, then re-plan. Do NOT re-analyze the ASCII map to argue the wall "should" be open — if the game says blocked, it IS blocked.
 - Otherwise → **Record your current position** (from the result), go back to Step 2 and plan the next batch.
 
 **Keep iterating until you reach G.**
@@ -104,12 +129,18 @@ When you are close to G (1–2 cells away):
 - The `reachedGoal` flag will become `true` only when the player is **inside** the goal cell.
 - **Do NOT stop moving just because you can "see" G nearby** — you must actually step onto it.
 
-### Fallback
+### Fallback — When Blocked or Uncertain
 
-If you get blocked or confused:
-1. Call `getPlayerStatus()` to confirm your exact position and distances.
-2. Take a screenshot for visual confirmation.
-3. Call `getMazeMap()` again and re-plan from current position.
+> ⚠️ **IMPORTANT**: When a move is blocked, your map reading was wrong. Do NOT re-analyze the same ASCII text hoping for a different answer. Instead:
+
+1. **Call `getPlayerStatus()`** — it tells you exact distances to walls in all 4 directions. Distance ≥ 1.0 = open, < 0.7 = wall. This is **ground truth** — trust it over your map reading.
+2. Use the distance info to decide which direction to try next.
+3. Only call `getMazeMap()` again if you've moved to a new area and need a fresh map with updated P position.
+
+**Do NOT**:
+- Re-read the same map string multiple times trying to recount characters
+- Write "But the map shows it should be open!" — the game is authoritative
+- Spend multiple steps analyzing the same blocked path
 
 ## Movement Rules
 
@@ -121,10 +152,12 @@ If you get blocked or confused:
 
 ## Path Planning Tips
 
-1. **Trace carefully**: `---` blocks north/south; `|` blocks east/west; spaces = open.
+1. **Use the column-based method**: For vertical walls, check the fixed separator columns (8, 12, 16, 20, 24, 28, 32). Don't eyeball or count characters.
 2. **Write coordinate traces**: Count arrows to get steps. This is the #1 way to avoid errors.
 3. **Merge consecutive same-direction moves**: north→north→north = `{dir:"north", steps:3}`.
-4. **Be concise**: Don't write long explanations for each cell. A short trace is enough.
+4. **Plan in short batches of 3–5 segments**: Don't try to plan 20+ segments at once. Move a few cells, confirm position, then continue. This prevents cascading errors from one bad map reading.
+5. **Use `getPlayerStatus()` as a compass**: When you're unsure about walls, call it first. It gives you ground truth about which directions are open.
+6. **Never re-analyze the same map text**: If a direction is blocked by the game, accept it and try another route immediately. Don't waste steps re-reading the map.
 
 ## Output Length Limit — CRITICAL
 

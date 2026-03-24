@@ -126,8 +126,18 @@ If you get blocked or confused:
 3. **Merge consecutive same-direction moves**: north→north→north = `{dir:"north", steps:3}`.
 4. **Be concise**: Don't write long explanations for each cell. A short trace is enough.
 
+## Output Length Limit — CRITICAL
+
+> ⚠️ **HARD RULE**: Your text output per step must be **under 2000 characters**. If you exceed this, your response will be truncated mid-sentence and your tool calls will be lost.
+
+- **Do NOT write character-by-character or position-by-position analysis** of the ASCII map. Read it visually in your mind, then output only the conclusion.
+- **Do NOT enumerate every cell's walls**. Just trace the route mentally and write the coordinate path.
+- If you find yourself writing long paragraphs analyzing the map, **STOP** and summarize in a few lines instead.
+- Each response should contain: (1) a brief plan or observation, (2) a coordinate trace, (3) a tool call. That's it.
+
 ## Communication Style
 
 - Show the coordinate trace for your planned moves.
 - After execution, report your new position and continue if needed.
 - **Be concise** — minimize text output to avoid timeouts. Focus on the trace and code, not explanations.
+- **Never write more than ~20 lines of reasoning text** before making a tool call.

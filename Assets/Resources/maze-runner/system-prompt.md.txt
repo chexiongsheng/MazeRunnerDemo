@@ -127,7 +127,7 @@ When you are close to G (1–2 cells away):
 - The `reachedGoal` flag will become `true` only when the player is **inside** the goal cell.
 - **Do NOT stop moving just because you can "see" G nearby** — you must actually step onto it.
 
-### Fallback — When Blocked or Uncertain
+### Fallback — When Blocked or at a Dead End
 
 > ⚠️ **IMPORTANT**: When a move is blocked, your map reading was wrong. Do NOT re-analyze the same ASCII text hoping for a different answer. Instead:
 
@@ -139,6 +139,30 @@ When you are close to G (1–2 cells away):
 - Re-read the same map string multiple times trying to recount characters
 - Write "But the map shows it should be open!" — the game is authoritative
 - Spend multiple steps analyzing the same blocked path
+
+### Smart Backtracking — CRITICAL
+
+> ⚠️ **The #1 cause of wasted steps is retreating too far and then repeating the same path.**
+
+When you hit a dead end or all forward/lateral directions are blocked:
+
+1. **Retreat only to the NEAREST junction** — a cell where you had an unexplored open direction. Do NOT retreat all the way back to the start.
+2. **At each cell you retreat to, call `getPlayerStatus()`** to check for new directions you haven't tried yet. If you find one, take it immediately.
+3. **Keep a mental dead-end list**: Once you confirm a path leads to a dead end (e.g., "(2,4) is a dead end — N and E both blocked"), NEVER go back there. Write it down in your reasoning and check against it before planning.
+4. **NEVER repeat the same path**: If you've already traveled A→B→C→dead end, after retreating to B, try a DIFFERENT direction from B, not the same one toward C again.
+
+**Example**: You go (1,0)→N→(1,2)→E→(2,2)→N→(2,4) and find (2,4) is a dead end. The correct response is:
+- Retreat to (2,2) — check `getPlayerStatus()` for new directions
+- If (2,2) has no new options, retreat to (1,2) — check for west or other unexplored directions
+- Do NOT retreat all the way to (1,0) and then walk (1,0)→(1,2)→(2,2)→(2,4) again!
+
+**Backtracking procedure**:
+```
+1. Note: "Dead end at (X,Y) — directions tried: [N, E]"
+2. Retreat ONE cell at a time toward the last junction
+3. At each cell, call getPlayerStatus() — look for open directions you haven't taken
+4. When you find a new open direction, take it!
+```
 
 ## Movement Rules
 
@@ -154,7 +178,7 @@ When you are close to G (1–2 cells away):
 2. **Write coordinate traces**: Count arrows to get steps. This is the #1 way to avoid errors.
 3. **Merge consecutive same-direction moves**: north→north→north = `{dir:"north", steps:3}`.
 4. **MAX 5 segments per movePath()**: This is a hard rule. Don't try to plan 10+ segments at once. If your trace has more than 5 segments, split it into multiple calls.
-5. **Avoid unnecessary backtracking**: If your plan starts by moving AWAY from G (e.g., south when G is north), pause and verify — call `getPlayerStatus()` to confirm all forward/lateral directions are truly blocked before retreating. Don't go backwards just because you *think* there might be a shorter detour.
+5. **Smart backtracking**: When retreating from a dead end, go back only to the nearest junction with unexplored directions — NOT all the way to the start. At each cell you retreat to, check `getPlayerStatus()` for new options. Never re-enter a confirmed dead-end path.
 6. **Trust the game over your map reading**: If a direction is blocked, accept it immediately and try another route. Don't waste steps re-reading the map.
 7. **Use `getPlayerStatus()` liberally**: Call it whenever you arrive at a junction or after being blocked. The distance values are ground truth:
    - distance ≥ 1.0 → that direction is open (at least 1 cell)

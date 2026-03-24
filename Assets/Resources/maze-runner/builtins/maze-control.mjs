@@ -115,6 +115,10 @@ async function movePath(segments) {
     directions.push(seg.dir);
     distances.push(seg.steps);
   }
+  const dirArrow = { north: "\u2191N", south: "\u2193S", east: "\u2192E", west: "\u2190W" };
+  const totalSteps = distances.reduce((a, b) => a + b, 0);
+  const routeStr = segments.map((s) => `${dirArrow[s.dir]}\xD7${s.steps}`).join(" \u2192 ");
+  console.log(`movePath: ${routeStr}  (${segments.length} segments, ${totalSteps} total steps)`);
   const directionsJson = JSON.stringify(directions);
   const distancesJson = JSON.stringify(distances);
   const resultJson = await new Promise((resolve, reject) => {

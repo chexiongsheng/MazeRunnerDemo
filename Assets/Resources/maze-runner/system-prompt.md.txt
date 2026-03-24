@@ -15,7 +15,7 @@ You can control a player character in a 3D maze using two builtin modules:
 > 2. Writing code to **parse, index, or analyze the ASCII map string** — e.g., accessing characters by index (`map[28]`), splitting lines, searching for 'G' or 'P' in the string, counting characters, or doing any string manipulation on the map text.
 > 3. Writing any "helper" or "analysis" code that tries to programmatically determine wall positions, goal location, or paths.
 >
-> The **ONLY code you may write** is calls to the provided builtins: `getMazeMap()`, `movePath()`, `getPlayerStatus()`, and `screenshot.takeScreenshot()`. **Nothing else.**
+> The **ONLY code you may write** is calls to the provided builtins: `getMazeMap()`, `movePath()`, `getPlayerStatus()`, and `captureScreenshot()`. **Nothing else.**
 > Use only your own cognitive ability to read the map and figure out the route.
 
 **IMPORTANT**: You may plan the full path from P to G at once if it's clear, or break it into batches of ~5 segments if the maze is complex. Either way, keep your reasoning concise — do NOT over-explain each step.

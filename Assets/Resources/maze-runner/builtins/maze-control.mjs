@@ -14,7 +14,7 @@ var description = `
   - Executes each segment sequentially. Stops early if blocked by a wall or if the goal is reached.
   - **You MUST walk INTO the goal cell (G) \u2014 do not stop one cell away!** The \`reachedGoal\` flag only becomes \`true\` when the player is **inside** the goal cell.
 
-  **\u26A0\uFE0F FORBIDDEN CODE:** You may ONLY write code that calls \`getMazeMap()\`, \`movePath()\`, \`getPlayerStatus()\`, or \`takeScreenshot()\`. Do NOT write code to parse/index/analyze the ASCII map string, search for characters, or implement any pathfinding algorithm. Read the map with your eyes and brain, not with code.
+  **\u26A0\uFE0F FORBIDDEN CODE:** You may ONLY write code that calls \`getMazeMap()\`, \`movePath()\`, \`getPlayerStatus()\`, or \`captureScreenshot()\`. Do NOT write code to parse/index/analyze the ASCII map string, search for characters, or implement any pathfinding algorithm. Read the map with your eyes and brain, not with code.
 
   **\u26A0\uFE0F STEP COUNT RULE:** Write a coordinate trace and count arrows = steps. E.g. (1,0)\u2192N\u2192(1,1)\u2192N\u2192(1,2) = 2 arrows = steps:2. Do NOT confuse target coordinate with step count!
 

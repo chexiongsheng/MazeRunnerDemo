@@ -96,7 +96,7 @@ namespace LLMAgent
                     float actualMoveDistance = stepDistanceMeters;
                     bool stepBlocked = false;
 
-                    if (Physics.Raycast(player.position + Vector3.up * 0.5f, dir.Value, out RaycastHit hit, rayDistance))
+                    if (Physics.Raycast(player.position + Vector3.up * 0.5f, dir.Value, out RaycastHit hit, rayDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                     {
                         float distToObstacle = hit.distance - 0.3f;
                         if (distToObstacle < stepDistanceMeters)
@@ -175,7 +175,7 @@ namespace LLMAgent
                 bool blocked = false;
                 float actualMoveDistance = distance;
 
-                if (Physics.Raycast(player.position + Vector3.up * 0.5f, direction, out RaycastHit hit, rayDistance))
+                if (Physics.Raycast(player.position + Vector3.up * 0.5f, direction, out RaycastHit hit, rayDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                 {
                     float distToObstacle = hit.distance - 0.3f;
                     if (distToObstacle < distance)
@@ -649,13 +649,13 @@ namespace LLMAgent
                         );
 
                         // North (+Z)
-                        walls[x, y, 0] = Physics.Raycast(cellCenter, Vector3.forward, wallDetectDist);
+                        walls[x, y, 0] = Physics.Raycast(cellCenter, Vector3.forward, wallDetectDist, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
                         // East (+X)
-                        walls[x, y, 1] = Physics.Raycast(cellCenter, Vector3.right, wallDetectDist);
+                        walls[x, y, 1] = Physics.Raycast(cellCenter, Vector3.right, wallDetectDist, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
                         // South (-Z)
-                        walls[x, y, 2] = Physics.Raycast(cellCenter, Vector3.back, wallDetectDist);
+                        walls[x, y, 2] = Physics.Raycast(cellCenter, Vector3.back, wallDetectDist, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
                         // West (-X)
-                        walls[x, y, 3] = Physics.Raycast(cellCenter, Vector3.left, wallDetectDist);
+                        walls[x, y, 3] = Physics.Raycast(cellCenter, Vector3.left, wallDetectDist, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
                     }
                 }
 
@@ -799,7 +799,7 @@ namespace LLMAgent
 
         private static float RaycastDistance(Vector3 origin, Vector3 direction, float maxDist = 20f)
         {
-            if (Physics.Raycast(origin, direction, out RaycastHit hit, maxDist))
+            if (Physics.Raycast(origin, direction, out RaycastHit hit, maxDist, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
                 return hit.distance;
             }

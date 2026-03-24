@@ -92,8 +92,8 @@ namespace LLMAgent
         // Scrollbar tracking
         private float lastContentHeight = 0f;
 
-        // Streaming text accumulation: index of the current streaming message, -1 if none
-        private int streamingMsgIndex = -1;
+        // Index of the current progress message being accumulated, -1 if none
+        private int progressMsgIndex = -1;
 
         private void Start()
         {
@@ -164,7 +164,7 @@ namespace LLMAgent
             chatMessages.Clear();
             inputText = "";
             scrollPosition = Vector2.zero;
-            streamingMsgIndex = -1;
+            progressMsgIndex = -1;
         }
 
         /// <summary>Add a chat message to the panel.</summary>
@@ -176,48 +176,33 @@ namespace LLMAgent
         }
 
         /// <summary>
-        /// Update or add a progress message. [STREAM] prefixed messages are appended
-        /// to a single Assistant bubble instead of creating new messages each time.
+        /// Update or add a progress message. All progress fragments (streaming text,
+        /// tool calls, thinking, etc.) are appended to a single Progress bubble.
         /// </summary>
         public void UpdateProgress(string text)
         {
             if (string.IsNullOrEmpty(text)) return;
 
-            if (text.StartsWith("[STREAM]"))
+            if (progressMsgIndex >= 0 && progressMsgIndex < chatMessages.Count)
             {
-                string chunk = text.Substring(8);
-                if (streamingMsgIndex >= 0 && streamingMsgIndex < chatMessages.Count)
-                {
-                    // Append to existing streaming message
-                    chatMessages[streamingMsgIndex].text += chunk;
-                }
-                else
-                {
-                    // Create a new Assistant message for streaming content
-                    chatMessages.Add(new ChatMessage(MessageRole.Assistant, chunk));
-                    streamingMsgIndex = chatMessages.Count - 1;
-                }
+                // Append to existing progress message
+                chatMessages[progressMsgIndex].text += text;
             }
             else
             {
-                // A non-stream message arrived (e.g. tool call). Reset streaming index
-                // so the next [STREAM] round creates a fresh Assistant message.
-                streamingMsgIndex = -1;
-                // Normal progress message (tool calls, thinking, etc.)
+                // Create a new Progress message
                 chatMessages.Add(new ChatMessage(MessageRole.Progress, text));
+                progressMsgIndex = chatMessages.Count - 1;
             }
             scrollToBottom = true;
         }
 
         /// <summary>
-        /// Reset streaming state. Called when a generation finishes.
-        /// Returns true if there was streaming content (so caller can skip duplicate final text).
+        /// Reset progress accumulation state. Called when a generation finishes.
         /// </summary>
-        public bool ResetStreaming()
+        public void ResetProgress()
         {
-            bool hadStreaming = streamingMsgIndex >= 0;
-            streamingMsgIndex = -1;
-            return hadStreaming;
+            progressMsgIndex = -1;
         }
 
         /// <summary>Set the initial text in the input field.</summary>

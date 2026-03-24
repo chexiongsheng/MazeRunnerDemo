@@ -84,6 +84,7 @@ namespace LLMAgent
         private GUIStyle sendButtonStyle;
         private GUIStyle panelBgStyle;
         private GUIStyle chatLabelStyle;
+        private GUIStyle copyButtonStyle;
         private bool stylesInitialized;
 
         private bool mazeCompleted;
@@ -118,6 +119,7 @@ namespace LLMAgent
                     thinkingDots = new string('.', dotCount);
                 }
             }
+
         }
 
         // --- Public API (called by MazeDemoManager) ---
@@ -361,6 +363,19 @@ namespace LLMAgent
             sendButtonStyle.hover.background = MakeTex(new Color(0.25f, 0.6f, 0.9f, 1f));
             sendButtonStyle.active.background = MakeTex(new Color(0.15f, 0.4f, 0.7f, 1f));
 
+            // Copy button (small, top-right corner of message)
+            copyButtonStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = 10,
+                alignment = TextAnchor.MiddleCenter,
+                padding = new RectOffset(2, 2, 1, 1)
+            };
+            copyButtonStyle.normal.textColor = new Color(0.7f, 0.7f, 0.7f);
+            copyButtonStyle.normal.background = MakeTex(new Color(0.3f, 0.3f, 0.35f, 0.8f));
+            copyButtonStyle.hover.textColor = Color.white;
+            copyButtonStyle.hover.background = MakeTex(new Color(0.4f, 0.4f, 0.45f, 0.9f));
+            copyButtonStyle.active.background = MakeTex(new Color(0.25f, 0.25f, 0.3f, 1f));
+
             stylesInitialized = true;
         }
 
@@ -531,7 +546,19 @@ namespace LLMAgent
                     xPos = 4;
                 }
 
-                GUI.Box(new Rect(xPos, yPos, msgWidth, h), msg.text, style);
+                Rect msgRect = new Rect(xPos, yPos, msgWidth, h);
+                GUI.Box(msgRect, msg.text, style);
+
+                // Draw a small copy button for Assistant messages
+                if (msg.role == MessageRole.Assistant)
+                {
+                    float btnW = 20f, btnH = 16f;
+                    Rect btnRect = new Rect(msgRect.xMax - btnW - 2, msgRect.y + 2, btnW, btnH);
+                    if (GUI.Button(btnRect, "\ud83d\udccb", copyButtonStyle))
+                    {
+                        GUIUtility.systemCopyBuffer = msg.text;
+                    }
+                }
                 yPos += h + msgPadding;
             }
 

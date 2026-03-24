@@ -18,7 +18,10 @@ You can control a player character in a 3D maze using two builtin modules:
 > The **ONLY code you may write** is calls to the provided builtins: `getMazeMap()`, `movePath()`, `getPlayerStatus()`, and `captureScreenshot()`. **Nothing else.**
 > Use only your own cognitive ability to read the map and figure out the route.
 
-**IMPORTANT**: You may plan the full path from P to G at once if it's clear, or break it into batches of ~5 segments if the maze is complex. Either way, keep your reasoning concise — do NOT over-explain each step.
+**IMPORTANT**: 
+- **NEVER plan more than 5 segments per movePath() call.** Long plans (10+ segments) almost always contain errors that waste many steps. Plan 3–5 segments, execute, confirm position, then plan the next batch.
+- **Avoid going backwards** (away from the goal) unless you've tried forward directions and confirmed they are all blocked. If you do need to backtrack, call `getPlayerStatus()` first to verify you're truly stuck before retreating.
+- Keep your reasoning concise — do NOT over-explain each step.
 
 ### ASCII Map Format
 
@@ -29,38 +32,31 @@ The map uses these symbols:
 - Rows labeled y0 (south/bottom) to yN (north/top)
 - Columns labeled x0 (west/left) to xN (east/right)
 
-### How to Read the Map — Column-Based Method
+### How to Read the Map — Visual Pipe Method
 
-The map has a **fixed column layout**. After the `" y# "` label (4 chars), the content is 33 characters with this structure:
+Each cell row looks like: `|   |       |   |       |       |`
+Each border row looks like: `+---+   +---+   +   +---+   +---+`
 
-```
-col:  0    4    8   12   16   20   24   28   32   36
-      |  x0  sep  x1  sep  x2  sep  x3  sep  x4  ...  |
-      |  [3] [1]  [3] [1]  [3] [1]  [3] [1]  [3]      |
-```
+**Vertical walls (can I go east/west?)**:
+The cell row has exactly **9 pipe-or-space characters** that separate cells (for an 8-wide maze). They appear at fixed positions — but instead of counting columns, use this **simpler visual method**:
 
-- **col 4**: left border `|`
-- **col 5–7**: x0 cell content (3 chars)
-- **col 8**: separator between x0 and x1 — `|` = WALL, ` ` = OPEN
-- **col 9–11**: x1 cell content
-- **col 12**: separator between x1 and x2
-- ... and so on for each cell pair ...
-- **col 36**: right border `|`
+> Read the cell row from left to right. The characters between each pair of 3-char cell slots are the separators:
+> `| [x0:3] [sep] [x1:3] [sep] [x2:3] [sep] ... [x7:3] |`
+>
+> Each `[sep]` is 1 character: `|` = WALL, ` ` (space) = OPEN.
 
-**Vertical walls (east/west)**: Look at the **separator column** (col 8, 12, 16, 20, 24, 28, 32). If it's `|`, there's a wall; if it's ` ` (space), the passage is open.
+**Example**: `|   |       |   |       |       |`
+→ Split mentally: `|` `   ` `|` `   ` ` ` `   ` ` ` `   ` `|` `   ` `|` `   ` ` ` `   ` ` ` `   ` `|` `   ` `|`
+Wait — that's wrong! Remember: each cell is EXACTLY 3 characters, each separator is EXACTLY 1 character.
+→ Correct split: `|` + `   `(x0) + `|`(wall) + `   `(x1) + ` `(open) + `   `(x2) + ` `(open) + `   `(x3) + `|`(wall) + `   `(x4) + ` `(open) + `   `(x5) + ` `(open) + `   `(x6) + `|`(wall) + `   `(x7) + `|`
+→ Walls: x0-x1=wall, x1-x2=open, x2-x3=open, x3-x4=wall, x4-x5=open, x5-x6=open, x6-x7=wall
 
-**Horizontal walls (north/south)**: In the `+---+` rows between cell rows, each cell position has 3 chars: `---` = wall, `   ` = open.
+**But visual reading is error-prone!** So always **verify uncertain walls with `getPlayerStatus()`** before committing to a long path.
 
-> ⚠️ **COMMON MISTAKE**: Do NOT try to count characters or split by `|` to find walls — this leads to errors because open passages merge multiple cells into one visual span (e.g., `|       |` looks like 7 spaces spanning x0+sep+x1). Instead, **always use the fixed column positions** above.
+**Horizontal walls (can I go north/south?)**:
+In the `+---+` rows, each cell slot has 3 chars: `---` = WALL (blocks N/S), `   ` = OPEN.
 
-**Quick reference for an 8×8 maze** (separator columns after label):
-- x0–x1: col 8
-- x1–x2: col 12
-- x2–x3: col 16
-- x3–x4: col 20
-- x4–x5: col 24
-- x5–x6: col 28
-- x6–x7: col 32
+> ⚠️ **KEY INSIGHT**: If you're unsure about ANY wall, call `getPlayerStatus()` FIRST. It returns exact distances to walls in all 4 directions (distance ≥ 1.0 means open). This is **always correct** and takes only 1 step. Don't waste 5 steps on a wrong path because you misread the map.
 
 ## Direction Mapping
 
@@ -86,13 +82,15 @@ Your goal is to reach the **maze exit marker** (G on the map):
 
 Call `getMazeMap()` to get the full ASCII maze layout. Identify P (player) and G (goal) positions.
 
-### Step 2 — Plan Your Path
+### Step 2 — Plan Your Path (SHORT batches only!)
 
 From your current position, trace a path toward G through open passages **by reasoning in your mind**:
 - Visually scan the ASCII map and find a route toward G.
 - From each cell, check which directions are open (no wall blocking).
-- You can plan the full route at once, or break it into batches if needed.
+- **Plan only 3–5 segments at a time.** Execute, confirm, then plan the next batch.
+- **Prefer moving TOWARD the goal.** Only go backwards if you've confirmed (via `getPlayerStatus()` or being blocked) that all forward/lateral directions are walls.
 - **Keep your reasoning concise** — just note the key turns, don't write paragraphs per cell.
+- **If unsure about a wall**, call `getPlayerStatus()` first to check distances before moving.
 
 ### Step 3 — Write Coordinate Trace to Count Steps
 
@@ -152,12 +150,15 @@ When you are close to G (1–2 cells away):
 
 ## Path Planning Tips
 
-1. **Use the column-based method**: For vertical walls, check the fixed separator columns (8, 12, 16, 20, 24, 28, 32). Don't eyeball or count characters.
+1. **Verify before committing**: If you're about to plan a path through a wall you haven't confirmed, call `getPlayerStatus()` first. One verification step saves 5+ wasted steps.
 2. **Write coordinate traces**: Count arrows to get steps. This is the #1 way to avoid errors.
 3. **Merge consecutive same-direction moves**: north→north→north = `{dir:"north", steps:3}`.
-4. **Plan in short batches of 3–5 segments**: Don't try to plan 20+ segments at once. Move a few cells, confirm position, then continue. This prevents cascading errors from one bad map reading.
-5. **Use `getPlayerStatus()` as a compass**: When you're unsure about walls, call it first. It gives you ground truth about which directions are open.
-6. **Never re-analyze the same map text**: If a direction is blocked by the game, accept it and try another route immediately. Don't waste steps re-reading the map.
+4. **MAX 5 segments per movePath()**: This is a hard rule. Don't try to plan 10+ segments at once. If your trace has more than 5 segments, split it into multiple calls.
+5. **Avoid unnecessary backtracking**: If your plan starts by moving AWAY from G (e.g., south when G is north), pause and verify — call `getPlayerStatus()` to confirm all forward/lateral directions are truly blocked before retreating. Don't go backwards just because you *think* there might be a shorter detour.
+6. **Trust the game over your map reading**: If a direction is blocked, accept it immediately and try another route. Don't waste steps re-reading the map.
+7. **Use `getPlayerStatus()` liberally**: Call it whenever you arrive at a junction or after being blocked. The distance values are ground truth:
+   - distance ≥ 1.0 → that direction is open (at least 1 cell)
+   - distance < 0.7 → wall immediately in that direction
 
 ## Output Length Limit — CRITICAL
 

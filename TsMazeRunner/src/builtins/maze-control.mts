@@ -165,6 +165,12 @@ export async function movePath(segments: PathSegment[]): Promise<MoveSequenceRes
         distances.push(seg.steps);
     }
 
+    // Print a visual route log
+    const dirArrow: Record<string, string> = { north: "↑N", south: "↓S", east: "→E", west: "←W" };
+    const totalSteps = distances.reduce((a, b) => a + b, 0);
+    const routeStr = segments.map(s => `${dirArrow[s.dir]}×${s.steps}`).join(" → ");
+    console.log(`movePath: ${routeStr}  (${segments.length} segments, ${totalSteps} total steps)`);
+
     const directionsJson = JSON.stringify(directions);
     const distancesJson = JSON.stringify(distances);
     const resultJson = await new Promise<string>((resolve, reject) => {
